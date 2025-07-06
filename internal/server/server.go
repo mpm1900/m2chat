@@ -10,7 +10,6 @@ import (
 var addr = flag.String("addr", ":3005", "http service address")
 
 func NewServer() *http.Server {
-	// fs := http.FileServer(http.Dir("./web/dist"))
 	mux := http.NewServeMux()
 
 	chatHandler := chat.NewChatHandler()
