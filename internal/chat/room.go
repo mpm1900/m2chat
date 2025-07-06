@@ -8,21 +8,39 @@ import (
 )
 
 type Room struct {
-	ID         uint32 `json:"id"`
+	ID         uint32
+	name       string
 	clients    map[uint32]*Client
 	register   chan *Client
 	unregister chan *Client
 	incoming   chan Message
+	request    chan RoomRequest
+}
+
+type RoomResponse struct {
+	ID          uint32 `json:"id"`
+	Name        string `json:"name"`
+	ClientCount int    `json:"clientCount"`
+}
+
+type RoomRequest struct {
+	Response chan<- RoomResponse
 }
 
 func NewRoom() *Room {
 	return &Room{
 		ID:         uuid.New().ID(),
+		name:       "Untitled Room",
 		clients:    make(map[uint32]*Client),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		incoming:   make(chan Message, 256),
+		request:    make(chan RoomRequest),
 	}
+}
+
+func (r *Room) Get(req RoomRequest) {
+	r.request <- req
 }
 
 func (r *Room) addClient(client *Client) {
@@ -88,6 +106,13 @@ func (r *Room) Run() {
 			} else {
 				r.broadcastMessage(message)
 			}
+		case req := <-r.request:
+			res := RoomResponse{
+				ID:          r.ID,
+				Name:        r.name,
+				ClientCount: len(r.clients),
+			}
+			req.Response <- res
 		}
 	}
 }
