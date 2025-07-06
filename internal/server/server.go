@@ -18,8 +18,8 @@ func NewServer() *http.Server {
 		indexPath:  "/index.html",
 	}
 
-	mux.Handle("/", spaHandler)
 	mux.Handle("/chat/", chatHandler)
+	mux.Handle("/", spaHandler)
 
 	return &http.Server{
 		Addr:    *addr,

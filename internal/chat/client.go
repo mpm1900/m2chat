@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -21,18 +22,23 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	ID uint32 `json:"id"`
-
-	conn *websocket.Conn
-	send chan Message
-	room *Room
+	ID     uint32 `json:"id"`
+	conn   *websocket.Conn
+	room   *Room
+	send   chan Message
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func NewClient(room *Room) *Client {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Client{
-		ID:   uuid.New().ID(),
-		send: make(chan Message, 256),
-		room: room,
+		ID:     uuid.New().ID(),
+		send:   make(chan Message, 256),
+		room:   room,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -70,6 +76,7 @@ func (c *Client) read() {
 
 		c.room.unregister <- c
 		c.conn.Close()
+		c.cancel()
 	}()
 
 	pongHandler := func(string) error {
@@ -93,7 +100,11 @@ func (c *Client) read() {
 		message.RoomID = c.room.ID
 		log.Printf("[client=%d] received message: %v", c.ID, message)
 
-		c.room.incoming <- message
+		select {
+		case c.room.incoming <- message:
+		case <-c.ctx.Done():
+			return
+		}
 	}
 }
 
@@ -117,6 +128,8 @@ func (c *Client) write() {
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+		case <-c.ctx.Done():
+			return
 		}
 	}
 }
