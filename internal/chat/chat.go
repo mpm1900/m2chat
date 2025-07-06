@@ -15,52 +15,14 @@ type ChatHandler struct {
 	roomsMu sync.RWMutex
 }
 
-func NewChatHandler(mux *http.ServeMux) *ChatHandler {
+func NewChatHandler() *ChatHandler {
 	handler := &ChatHandler{
-		mux:   mux,
+		mux:   http.NewServeMux(),
 		rooms: make(map[uint32]*Room),
 	}
 
-	mux.HandleFunc("GET /chat/rooms/{roomID}", func(w http.ResponseWriter, r *http.Request) {
-		roomID, err := strconv.ParseUint(r.PathValue("roomID"), 10, 32)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		log.Printf("roomID: %d", roomID)
-		room, ok := handler.getRoom(uint32(roomID))
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("room not found"))
-			return
-		}
-
-		res := make(chan RoomResponse, 1)
-		req := RoomRequest{
-			Response: res,
-		}
-
-		select {
-		case room.request <- req:
-			select {
-			case data := <-res:
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(data)
-			case <-time.After(time.Second):
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("timeout"))
-				return
-			}
-		case <-time.After(time.Second):
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("timeout"))
-			return
-		}
-	})
-
-	mux.HandleFunc("GET /chat/rooms/{roomID}/ws", handler.handleWs)
+	handler.mux.HandleFunc("GET /chat/rooms/{roomID}", handler.handleGetRoom)
+	handler.mux.HandleFunc("GET /chat/rooms/{roomID}/ws", handler.handleWs)
 	return handler
 }
 
@@ -108,4 +70,43 @@ func (ch *ChatHandler) handleWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client.Subscribe()
+}
+
+func (ch *ChatHandler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
+	roomID, err := strconv.ParseUint(r.PathValue("roomID"), 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	log.Printf("roomID: %d", roomID)
+	room, ok := ch.getRoom(uint32(roomID))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("room not found"))
+		return
+	}
+
+	res := make(chan RoomResponse, 1)
+	req := RoomRequest{
+		Response: res,
+	}
+
+	select {
+	case room.request <- req:
+		select {
+		case data := <-res:
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+		case <-time.After(time.Second):
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("timeout"))
+			return
+		}
+	case <-time.After(time.Second):
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("timeout"))
+		return
+	}
 }

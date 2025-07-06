@@ -10,15 +10,20 @@ import (
 var addr = flag.String("addr", ":3005", "http service address")
 
 func NewServer() *http.Server {
-	fs := http.FileServer(http.Dir("./web/dist"))
+	// fs := http.FileServer(http.Dir("./web/dist"))
 	mux := http.NewServeMux()
-	handler := chat.NewChatHandler(mux)
-	server := &http.Server{
-		Addr:    *addr,
-		Handler: handler,
+
+	chatHandler := chat.NewChatHandler()
+	spaHandler := &SpaHandler{
+		staticPath: "./web/dist",
+		indexPath:  "/index.html",
 	}
 
-	mux.Handle("/", fs)
+	mux.Handle("/", spaHandler)
+	mux.Handle("/chat/", chatHandler)
 
-	return server
+	return &http.Server{
+		Addr:    *addr,
+		Handler: mux,
+	}
 }
