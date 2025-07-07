@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,19 +21,19 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	ID     uint32 `json:"id"`
-	conn   *websocket.Conn
-	room   *Room
-	send   chan Message
-	ctx    context.Context
-	cancel context.CancelFunc
+	ID     ID                 `json:"id"`
+	conn   *websocket.Conn    `json:"-"`
+	room   *Room              `json:"-"`
+	send   chan Message       `json:"-"`
+	ctx    context.Context    `json:"-"`
+	cancel context.CancelFunc `json:"-"`
 }
 
 func NewClient(room *Room) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Client{
-		ID:     uuid.New().ID(),
+		ID:     NewID(),
 		send:   make(chan Message, 256),
 		room:   room,
 		ctx:    ctx,
@@ -72,7 +71,7 @@ func (c *Client) writeMessage(message Message) error {
 
 func (c *Client) read() {
 	defer func() {
-		log.Printf("[client=%d] disconnected", c.ID)
+		log.Printf("[client=%s] disconnected", c.ID)
 
 		c.room.unregister <- c
 		c.conn.Close()
@@ -98,7 +97,7 @@ func (c *Client) read() {
 
 		message.ClientID = c.ID
 		message.RoomID = c.room.ID
-		log.Printf("[client=%d] received message: %v", c.ID, message)
+		log.Printf("[client=%s] received message: %v", c.ID, message)
 
 		select {
 		case c.room.incoming <- message:
@@ -140,7 +139,7 @@ func (c *Client) Connect(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	log.Printf("[client=%d] connected", c.ID)
+	log.Printf("[client=%s] connected", c.ID)
 	c.conn = conn
 	c.room.register <- c
 	return nil

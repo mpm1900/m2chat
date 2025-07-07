@@ -4,36 +4,37 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 )
 
 type ChatHandler struct {
 	mux     *http.ServeMux
-	rooms   map[uint32]*Room
+	rooms   map[ID]*Room
 	roomsMu sync.RWMutex
 }
 
 func NewChatHandler() *ChatHandler {
 	handler := &ChatHandler{
 		mux:   http.NewServeMux(),
-		rooms: make(map[uint32]*Room),
+		rooms: make(map[ID]*Room),
 	}
 
-	handler.mux.HandleFunc("GET /chat/rooms/{roomID}", handler.handleGetRoom)
 	handler.mux.HandleFunc("GET /chat/rooms/{roomID}/ws", handler.handleWs)
+	handler.mux.HandleFunc("GET /chat/rooms/{roomID}", handler.handleGetRoom)
+	handler.mux.HandleFunc("GET /chat/rooms", handler.handleGetAllRooms)
+
 	return handler
 }
 
-func (ch *ChatHandler) getRoom(roomID uint32) (*Room, bool) {
+func (ch *ChatHandler) getRoom(roomID ID) (*Room, bool) {
 	ch.roomsMu.RLock()
 	defer ch.roomsMu.RUnlock()
 	room, ok := ch.rooms[roomID]
 	return room, ok
 }
 
-func (ch *ChatHandler) getOrCreateRoom(roomID uint32) *Room {
+func (ch *ChatHandler) getOrCreateRoom(roomID ID) *Room {
 	room, ok := ch.getRoom(roomID)
 	if ok {
 		return room
@@ -46,7 +47,7 @@ func (ch *ChatHandler) getOrCreateRoom(roomID uint32) *Room {
 	ch.rooms[roomID] = room
 
 	go room.Run()
-	log.Printf("created room: %d", roomID)
+	log.Printf("created room: %s", roomID)
 	return room
 }
 
@@ -54,16 +55,15 @@ func (ch *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ch.mux.ServeHTTP(w, r)
 }
 
-func (ch *ChatHandler) handleWs(w http.ResponseWriter, r *http.Request) {
-	roomID, err := strconv.ParseUint(r.PathValue("roomID"), 10, 32)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-	log.Printf("roomID: %d", roomID)
-	room := ch.getOrCreateRoom(uint32(roomID))
+func timeout(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("timeout"))
+}
 
+func (ch *ChatHandler) handleWs(w http.ResponseWriter, r *http.Request) {
+	roomID := r.PathValue("roomID")
+
+	room := ch.getOrCreateRoom(ID(roomID))
 	client := NewClient(room)
 	if err := client.Connect(w, r); err != nil {
 		log.Println(err)
@@ -73,40 +73,63 @@ func (ch *ChatHandler) handleWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ch *ChatHandler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
-	roomID, err := strconv.ParseUint(r.PathValue("roomID"), 10, 32)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-	log.Printf("roomID: %d", roomID)
-	room, ok := ch.getRoom(uint32(roomID))
+	roomID := r.PathValue("roomID")
+	room, ok := ch.getRoom(ID(roomID))
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("room not found"))
 		return
 	}
 
-	res := make(chan RoomResponse, 1)
+	response := make(chan RoomDTO, 1)
 	req := RoomRequest{
-		Response: res,
+		Response: response,
 	}
 
 	select {
 	case room.request <- req:
 		select {
-		case data := <-res:
+		case data := <-response:
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(data)
 		case <-time.After(time.Second):
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("timeout"))
+			timeout(w)
 			return
 		}
 	case <-time.After(time.Second):
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("timeout"))
+		timeout(w)
 		return
 	}
+}
+
+func (ch *ChatHandler) handleGetAllRooms(w http.ResponseWriter, r *http.Request) {
+	ch.roomsMu.RLock()
+	defer ch.roomsMu.RUnlock()
+
+	var roomDTOs []RoomDTO
+	for _, room := range ch.rooms {
+		response := make(chan RoomDTO, 1)
+		req := RoomRequest{
+			Response: response,
+		}
+
+		select {
+		case room.request <- req:
+			select {
+			case data := <-response:
+				roomDTOs = append(roomDTOs, data)
+			case <-time.After(time.Second):
+				timeout(w)
+				continue
+			}
+		case <-time.After(time.Second):
+			timeout(w)
+			continue
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(roomDTOs)
 }

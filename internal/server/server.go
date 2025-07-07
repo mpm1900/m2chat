@@ -1,9 +1,7 @@
 package server
 
 import (
-	"errors"
 	"flag"
-	"log"
 	"net/http"
 
 	"github.com/mpm1900/m2chat/internal/chat"
@@ -21,7 +19,7 @@ func NewServer() *Server {
 	chatHandler := chat.NewChatHandler()
 	spaHandler := &SpaHandler{
 		staticPath: "./web/dist",
-		indexPath:  "/index.html",
+		indexPath:  "index.html",
 	}
 
 	mux.Handle("/chat/", chatHandler)
@@ -32,13 +30,5 @@ func NewServer() *Server {
 			Addr:    *addr,
 			Handler: mux,
 		},
-	}
-}
-
-func (s *Server) Run() {
-	log.Printf("running on %s", s.Addr)
-	err := s.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal(err)
 	}
 }

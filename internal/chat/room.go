@@ -3,35 +3,33 @@ package chat
 import (
 	"errors"
 	"log"
-
-	"github.com/google/uuid"
 )
 
 type Room struct {
-	ID         uint32
+	ID         ID
 	name       string
-	clients    map[uint32]*Client
+	clients    map[ID]*Client
 	register   chan *Client
 	unregister chan *Client
 	incoming   chan Message
 	request    chan RoomRequest
 }
 
-type RoomResponse struct {
-	ID          uint32 `json:"id"`
-	Name        string `json:"name"`
-	ClientCount int    `json:"clientCount"`
+type RoomDTO struct {
+	ID      ID       `json:"id"`
+	Name    string   `json:"name"`
+	Clients []Client `json:"clients"`
 }
 
 type RoomRequest struct {
-	Response chan<- RoomResponse
+	Response chan<- RoomDTO
 }
 
 func NewRoom() *Room {
 	return &Room{
-		ID:         uuid.New().ID(),
+		ID:         NewID(),
 		name:       "Untitled Room",
-		clients:    make(map[uint32]*Client),
+		clients:    make(map[ID]*Client),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		incoming:   make(chan Message, 256),
@@ -44,7 +42,7 @@ func (r *Room) Get(req RoomRequest) {
 }
 
 func (r *Room) addClient(client *Client) {
-	log.Printf("[room=%d] registering %d", r.ID, client.ID)
+	log.Printf("[room=%s] registering %s", r.ID, client.ID)
 	r.clients[client.ID] = client
 }
 
@@ -61,7 +59,7 @@ func (r *Room) sendMessage(message Message) error {
 		return errors.New("client not found")
 	}
 
-	log.Printf("[room=%d] sending message from %d to %d: %v", r.ID, message.ClientID, message.To, message)
+	log.Printf("[room=%s] sending message from %s to %s: %v", r.ID, message.ClientID, message.To, message)
 	select {
 	case client.send <- message:
 	default:
@@ -72,7 +70,11 @@ func (r *Room) sendMessage(message Message) error {
 }
 
 func (r *Room) broadcastMessage(message Message) {
-	log.Printf("[room=%d] broadcasting message from %d : %v", r.ID, message.ClientID, message)
+	if message.To != "" {
+		log.Printf("[room=%s] broadcasting message from %s : %v", r.ID, message.ClientID, message)
+	} else {
+		log.Printf("[room=%s] broadcasting message from SYSTEM : %v", r.ID, message)
+	}
 	for _, client := range r.clients {
 		select {
 		case client.send <- message:
@@ -82,35 +84,41 @@ func (r *Room) broadcastMessage(message Message) {
 	}
 }
 
+func (r *Room) refetch() {
+	r.broadcastMessage(Message{
+		ID:     NewID(),
+		Type:   Refetch,
+		RoomID: r.ID,
+	})
+}
+
 func (r *Room) Run() {
 	for {
 		select {
 		case client := <-r.register:
 			r.addClient(client)
-			r.broadcastMessage(Message{
-				Type:   Refetch,
-				RoomID: r.ID,
-			})
+			r.refetch()
 		case client := <-r.unregister:
 			r.removeClient(client)
-			r.broadcastMessage(Message{
-				Type:   Refetch,
-				RoomID: r.ID,
-			})
+			r.refetch()
 		case message := <-r.incoming:
-			if message.To != 0 {
+			if message.To != "" {
 				err := r.sendMessage(message)
 				if err != nil {
-					log.Printf("[room=%d] error sending message: %v", r.ID, err)
+					log.Printf("[room=%s] error sending message: %v", r.ID, err)
 				}
 			} else {
 				r.broadcastMessage(message)
 			}
 		case req := <-r.request:
-			res := RoomResponse{
-				ID:          r.ID,
-				Name:        r.name,
-				ClientCount: len(r.clients),
+			clients := make([]Client, 0, len(r.clients))
+			for _, client := range r.clients {
+				clients = append(clients, *client)
+			}
+			res := RoomDTO{
+				ID:      r.ID,
+				Name:    r.name,
+				Clients: clients,
 			}
 			req.Response <- res
 		}

@@ -6,11 +6,11 @@ import (
 )
 
 type Message struct {
-	ID       uint32      `json:"id"`
+	ID       ID          `json:"id"`
 	Type     MessageType `json:"type"`
-	ClientID uint32      `json:"clientId"`
-	RoomID   uint32      `json:"roomId"`
-	To       uint32      `json:"to,omitempty"`
+	ClientID ID          `json:"clientId,omitempty"`
+	RoomID   ID          `json:"roomId"`
+	To       ID          `json:"to,omitempty"`
 }
 
 type MessageType uint8

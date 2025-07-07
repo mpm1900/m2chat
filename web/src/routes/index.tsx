@@ -1,9 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/')({
-  component: App,
+  loader: async () => {
+    return redirect({ to: '/rooms' })
+  },
 })
-
-function App() {
-  return <div className="text-center">hello world</div>
-}

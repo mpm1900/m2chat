@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,10 +20,18 @@ func main() {
 	defer stop()
 
 	s := server.NewServer()
-	go s.Run()
+	go run(s)
 
 	<-ctx.Done()
 	shutdown(s)
+}
+
+func run(s *server.Server) {
+	log.Printf("running on %s", s.Addr)
+	err := s.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
 }
 
 func shutdown(s *server.Server) {
