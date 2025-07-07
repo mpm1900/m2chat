@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"flag"
+	"log"
 	"net/http"
 
 	"github.com/mpm1900/m2chat/internal/chat"
@@ -9,7 +11,11 @@ import (
 
 var addr = flag.String("addr", ":3005", "http service address")
 
-func NewServer() *http.Server {
+type Server struct {
+	*http.Server
+}
+
+func NewServer() *Server {
 	mux := http.NewServeMux()
 
 	chatHandler := chat.NewChatHandler()
@@ -21,8 +27,18 @@ func NewServer() *http.Server {
 	mux.Handle("/chat/", chatHandler)
 	mux.Handle("/", spaHandler)
 
-	return &http.Server{
-		Addr:    *addr,
-		Handler: mux,
+	return &Server{
+		Server: &http.Server{
+			Addr:    *addr,
+			Handler: mux,
+		},
+	}
+}
+
+func (s *Server) Run() {
+	log.Printf("running on %s", s.Addr)
+	err := s.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
 	}
 }
