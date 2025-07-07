@@ -42,7 +42,6 @@ func (r *Room) Get(req RoomRequest) {
 }
 
 func (r *Room) addClient(client *Client) {
-	log.Printf("[room=%s] registering %s", r.ID, client.ID)
 	r.clients[client.ID] = client
 }
 
@@ -71,9 +70,9 @@ func (r *Room) sendMessage(message Message) error {
 
 func (r *Room) broadcastMessage(message Message) {
 	if message.To != "" {
-		log.Printf("[room=%s] broadcasting message from %s : %v", r.ID, message.ClientID, message)
+		// log.Printf("[room=%s] broadcasting message from %s : %v", r.ID, message.ClientID, message)
 	} else {
-		log.Printf("[room=%s] broadcasting message from SYSTEM : %v", r.ID, message)
+		// log.Printf("[room=%s] broadcasting message from SYSTEM : %v", r.ID, message)
 	}
 	for _, client := range r.clients {
 		select {
