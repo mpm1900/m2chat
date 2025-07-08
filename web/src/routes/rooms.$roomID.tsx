@@ -87,29 +87,28 @@ function RouteComponent() {
               {log
                 .filter((m) => m.type === 'chat')
                 .map((m) => (
-                  <div key={m.id} className="flex flex-col">
+                  <div
+                    key={m.id}
+                    className={cn('flex flex-col pr-8 pl-0', {
+                      'items-end pl-8 pr-0': client?.id === m.clientID,
+                    })}
+                  >
                     <div
-                      className={cn('flex flex-col', {
-                        'items-end': client?.id === m.clientID,
-                      })}
+                      className={cn(
+                        'flex flex-row items-center gap-2 leading-none',
+                        { 'flex-row-reverse': client?.id === m.clientID },
+                      )}
                     >
-                      <div
-                        className={cn(
-                          'flex flex-row items-center gap-2 leading-none',
-                          { 'flex-row-reverse': client?.id === m.clientID },
-                        )}
-                      >
-                        <div className="text-muted-foreground text-sm">
-                          {m.clientID}
-                        </div>
-                        {m.timestamp && (
-                          <div className="text-xs">
-                            ({format(m.timestamp, 'h:mm a')})
-                          </div>
-                        )}
+                      <div className="text-muted-foreground text-sm">
+                        {m.clientID}
                       </div>
-                      <div className="text-lg">{m.text}</div>
+                      {m.timestamp && (
+                        <div className="text-xs">
+                          ({format(m.timestamp, 'h:mm a')})
+                        </div>
+                      )}
                     </div>
+                    <div className="text-lg">{m.text}</div>
                   </div>
                 ))}
             </div>
