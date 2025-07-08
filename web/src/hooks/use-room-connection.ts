@@ -60,7 +60,7 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
         }
 
         const conn = new WebSocket(
-          `/chat/rooms/${roomID}/ws?clientID=${user.id}`,
+          `/chat/rooms/${roomID}/ws?userID=${user.id}&userName=${user.name}`,
         )
         set({ conn, roomID })
 

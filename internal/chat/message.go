@@ -5,6 +5,8 @@ type Message struct {
 	ID       ID          `json:"id"`
 	RoomID   ID          `json:"roomID"`
 	ClientID ID          `json:"clientID,omitempty"`
+	UserID   ID          `json:"userID,omitempty"`
+	UserName string      `json:"userName,omitempty"`
 	Type     MessageType `json:"type"`
 	To       []ID        `json:"to,omitempty"`
 	Omit     []ID        `json:"omit,omitempty"`

@@ -65,11 +65,14 @@ func timeout(w http.ResponseWriter) {
 func (ch *ChatHandler) handleWs(w http.ResponseWriter, r *http.Request) {
 	roomID := r.PathValue("roomID")
 	query := r.URL.Query()
-	clientID := query.Get("clientID")
+	userID := query.Get("userID")
+	userName := query.Get("userName")
 
 	room := ch.getOrCreateRoom(ID(roomID))
 	client := NewClient(room)
-	client.ID = ID(clientID)
+	client.UserID = ID(userID)
+	client.UserName = userName
+
 	if err := client.Connect(w, r); err != nil {
 		log.Println(err)
 		return

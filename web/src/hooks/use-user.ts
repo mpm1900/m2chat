@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker'
 import { v4 } from 'uuid'
 import { createStore, useStore } from 'zustand'
 import type { User } from '~/types/user'
@@ -13,7 +14,7 @@ export const userStore = createStore<UserStore>((set) => {
   return {
     user: {
       id: v4(),
-      name: '',
+      name: faker.internet.username(),
     },
     setUser: (updater) => {
       set((s) => ({

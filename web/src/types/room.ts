@@ -6,4 +6,6 @@ export type Room = {
 
 export type RoomClient = {
   id: string
+  userID: string
+  userName: string
 }

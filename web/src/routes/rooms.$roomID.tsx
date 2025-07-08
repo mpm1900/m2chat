@@ -23,6 +23,7 @@ import {
   useRoomConnection,
   useRoomEvent,
 } from '~/hooks/use-room-connection'
+import { useUser } from '~/hooks/use-user'
 import { cn } from '~/lib/utils'
 import type { SystemMessage } from '~/types/message'
 
@@ -38,6 +39,7 @@ export const Route = createFileRoute('/rooms/$roomID')({
 
 function RouteComponent() {
   const { roomID } = Route.useParams()
+  const user = useUser()
   const log = useRoomConnection((state) => state.messageLog)
   const conn = useRoomConnection((state) => state.conn)
   const send = useRoomConnection((state) => state.send)
@@ -100,7 +102,7 @@ function RouteComponent() {
                       )}
                     >
                       <div className="text-muted-foreground text-sm">
-                        {m.clientID}
+                        {m.userName || m.userID || m.clientID}
                       </div>
                       {m.timestamp && (
                         <div className="text-xs">
@@ -124,6 +126,8 @@ function RouteComponent() {
                     type: 'chat',
                     roomID,
                     text,
+                    userID: user.id,
+                    userName: user.name,
                   })
                 }}
               >
@@ -162,20 +166,24 @@ function RouteComponent() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {room.data?.clients.map((c) => (
-                    <SidebarMenuItem key={c.id}>
-                      <SidebarMenuButton>
-                        <div className="inline-flex flex-row items-center gap-2 truncate">
-                          {c.id === client?.id && (
-                            <span className="text-xs font-black text-muted-foreground">
-                              (YOU)
+                  {room.data?.clients
+                    .sort((a, b) => a.userName.localeCompare(b.userName))
+                    .map((c) => (
+                      <SidebarMenuItem key={c.id}>
+                        <SidebarMenuButton>
+                          <div className="inline-flex flex-row items-center gap-2 truncate">
+                            {c.id === client?.id && (
+                              <span className="text-xs font-black text-muted-foreground">
+                                (YOU)
+                              </span>
+                            )}
+                            <span className="truncate">
+                              {c.userName || c.userID || c.id}
                             </span>
-                          )}
-                          <span className="truncate">{c.id}</span>
-                        </div>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

@@ -28,6 +28,8 @@ export type ChatMessage = {
   type: 'chat'
   roomID: string
   clientID: string
+  userID: string
+  userName: string
   text: string
 
   timestamp?: Date

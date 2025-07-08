@@ -21,7 +21,10 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	ID     ID                 `json:"id"`
+	ID       ID     `json:"id"`
+	UserID   ID     `json:"userID"`
+	UserName string `json:"userName"`
+
 	conn   *websocket.Conn    `json:"-"`
 	room   *Room              `json:"-"`
 	send   chan Message       `json:"-"`
