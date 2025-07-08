@@ -48,7 +48,7 @@ function RouteComponent() {
 
   useRoomEvent(['*'], (message) => {
     console.log('received message', message)
-    queryClient.refetchQueries({
+    queryClient.removeQueries({
       predicate: (query) => {
         const base = String(query.queryKey[0])
         const system = message as SystemMessage
@@ -94,17 +94,22 @@ function RouteComponent() {
                         'items-end': client?.id === m.clientID,
                       })}
                     >
-                      <div className="flex flex-row items-center gap-2 leading-none">
+                      <div
+                        className={cn(
+                          'flex flex-row items-center gap-2 leading-none',
+                          { 'flex-row-reverse': client?.id === m.clientID },
+                        )}
+                      >
                         <div className="text-muted-foreground text-sm">
                           {m.clientID}
                         </div>
                         {m.timestamp && (
-                          <div className="text-sm">
+                          <div className="text-xs">
                             ({format(m.timestamp, 'h:mm a')})
                           </div>
                         )}
                       </div>
-                      <div>{m.text}</div>
+                      <div className="text-lg">{m.text}</div>
                     </div>
                   </div>
                 ))}
@@ -162,12 +167,14 @@ function RouteComponent() {
                   {room.data?.clients.map((c) => (
                     <SidebarMenuItem key={c.id}>
                       <SidebarMenuButton>
-                        {c.id === client?.id && (
-                          <span className="truncate">(YOU) {c.id}</span>
-                        )}
-                        {c.id !== client?.id && (
+                        <div className="inline-flex flex-row items-center gap-2 truncate">
+                          {c.id === client?.id && (
+                            <span className="text-xs font-black text-muted-foreground">
+                              (YOU)
+                            </span>
+                          )}
                           <span className="truncate">{c.id}</span>
-                        )}
+                        </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
