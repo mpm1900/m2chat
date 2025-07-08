@@ -28,6 +28,7 @@ func main() {
 
 func run(s *server.Server) {
 	log.Printf("running on %s", s.Addr)
+	log.Printf("visit http://localhost%s/ to start chatting!", s.Addr)
 	err := s.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)

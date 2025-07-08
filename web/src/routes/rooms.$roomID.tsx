@@ -71,7 +71,7 @@ function RouteComponent() {
               'bg-green-700': conn,
             })}
           />
-          <div className="italic text-muted-foreground truncate">
+          <div className="italic text-sm text-muted-foreground truncate">
             ({room.data?.id})
           </div>
         </div>
