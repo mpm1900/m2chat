@@ -45,7 +45,7 @@ func (c *Client) readMessage(message *Message) error {
 	_, raw, err := c.conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			// log.Printf("unexpected client error: %v", err)
+			log.Printf("unexpected client error: %v", err)
 		}
 		return err
 	}

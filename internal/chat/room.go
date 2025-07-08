@@ -1,8 +1,7 @@
 package chat
 
 import (
-	"errors"
-	"log"
+	"slices"
 )
 
 type Room struct {
@@ -52,29 +51,20 @@ func (r *Room) removeClient(client *Client) {
 	}
 }
 
-func (r *Room) sendMessage(message Message) error {
-	client, ok := r.clients[message.To]
-	if !ok {
-		return errors.New("client not found")
+func (r *Room) getClients() []Client {
+	var clients = make([]Client, 0, len(r.clients))
+	for _, client := range r.clients {
+		clients = append(clients, *client)
 	}
-
-	log.Printf("[room=%s] sending message from %s to %s: %v", r.ID, message.ClientID, message.To, message)
-	select {
-	case client.send <- message:
-	default:
-		r.removeClient(client)
-	}
-
-	return nil
+	return clients
 }
 
-func (r *Room) broadcastMessage(message Message) {
-	if message.To != "" {
-		// log.Printf("[room=%s] broadcasting message from %s : %v", r.ID, message.ClientID, message)
-	} else {
-		// log.Printf("[room=%s] broadcasting message from SYSTEM : %v", r.ID, message)
-	}
-	for _, client := range r.clients {
+func (r *Room) sendMessage(message Message) {
+	for _, to := range message.To {
+		client, ok := r.clients[to]
+		if !ok || slices.Contains(message.Omit, client.ID) {
+			continue
+		}
 		select {
 		case client.send <- message:
 		default:
@@ -83,11 +73,26 @@ func (r *Room) broadcastMessage(message Message) {
 	}
 }
 
-func (r *Room) refetch() {
+func (r *Room) broadcastMessage(message Message) {
+	for _, client := range r.clients {
+		if slices.Contains(message.Omit, client.ID) {
+			continue
+		}
+		select {
+		case client.send <- message:
+		default:
+			r.removeClient(client)
+		}
+	}
+}
+
+func (r *Room) refetch(keys []string, omit ...ID) {
 	r.broadcastMessage(Message{
-		ID:     NewID(),
-		Type:   Refetch,
-		RoomID: r.ID,
+		ID:      NewID(),
+		Type:    System,
+		RoomID:  r.ID,
+		Omit:    omit,
+		Refetch: keys,
 	})
 }
 
@@ -96,30 +101,30 @@ func (r *Room) Run() {
 		select {
 		case client := <-r.register:
 			r.addClient(client)
-			r.refetch()
+			r.refetch([]string{"room"}, client.ID)
+			r.sendMessage(Message{
+				ID:      NewID(),
+				Type:    Connect,
+				RoomID:  r.ID,
+				To:      []ID{client.ID},
+				Payload: client,
+			})
 		case client := <-r.unregister:
 			r.removeClient(client)
-			r.refetch()
+			r.refetch([]string{"room"}, client.ID)
 		case message := <-r.incoming:
-			if message.To != "" {
-				err := r.sendMessage(message)
-				if err != nil {
-					log.Printf("[room=%s] error sending message: %v", r.ID, err)
-				}
+			if message.To != nil {
+				r.sendMessage(message)
 			} else {
 				r.broadcastMessage(message)
 			}
 		case req := <-r.request:
-			clients := make([]Client, 0, len(r.clients))
-			for _, client := range r.clients {
-				clients = append(clients, *client)
-			}
-			res := RoomDTO{
+			dto := RoomDTO{
 				ID:      r.ID,
 				Name:    r.name,
-				Clients: clients,
+				Clients: r.getClients(),
 			}
-			req.Response <- res
+			req.Response <- dto
 		}
 	}
 }

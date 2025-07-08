@@ -1,26 +1,25 @@
-import { createStore, useStore } from 'zustand'
 import { useEffect } from 'react'
+import { createStore, useStore } from 'zustand'
+import type { ClientMessage, Message } from '~/types/message'
+import type { RoomClient } from '~/types/room'
 
-type Message = {
-  type: 'refetch'
-}
-
+type MessageType = Message['type'] | '*' | 'connect'
 type EventCallback = (message: Message) => void
-type EventMap = Map<Message['type'] | '*', Set<EventCallback>>
+type EventMap = Map<MessageType, Set<EventCallback>>
 
 type RoomConnectionState = {
   conn: WebSocket | null
   eventEmitter: EventMap
   messageLog: Message[]
+  roomID: string | null
+  client: RoomClient | null
 }
 type RoomConnectionActions = {
   connect: (roomID: string) => WebSocket
   disconnect: () => void
-  on: (
-    messageType: Message['type'] | '*',
-    callback: EventCallback,
-  ) => () => void
-  off: (messageType: Message['type'] | '*', callback: EventCallback) => void
+  on: (messageType: MessageType, callback: EventCallback) => () => void
+  off: (messageType: MessageType, callback: EventCallback) => void
+  send: (message: Omit<ClientMessage, 'clientID'>) => void
 }
 type RoomConnectionStore = RoomConnectionActions & RoomConnectionState
 
@@ -34,10 +33,13 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
       })
     }
 
-    function emit(message: Message) {
+    function emit(messageType: Exclude<MessageType, '*'>, message: Message) {
       const { eventEmitter } = get()
-      if (eventEmitter.has(message.type)) {
-        eventEmitter.get(message.type)?.forEach((callback) => callback(message))
+      if (message) {
+        set((s) => ({ ...s, messageLog: [...s.messageLog, message] }))
+      }
+      if (eventEmitter.has(messageType) || eventEmitter.has('*')) {
+        eventEmitter.get(messageType)?.forEach((callback) => callback(message))
         eventEmitter.get('*')?.forEach((callback) => callback(message))
       }
     }
@@ -46,6 +48,8 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
       conn: null,
       eventEmitter: new Map(),
       messageLog: [],
+      roomID: null,
+      client: null,
 
       connect: (roomID: string) => {
         const currentConn = get().conn
@@ -54,13 +58,22 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
         }
 
         const conn = new WebSocket(`/chat/rooms/${roomID}/ws`)
-        set({ conn })
+        set({ conn, roomID })
+
+        conn.onopen = () => {
+          console.log('connected to room')
+        }
 
         conn.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data)
+            message.timestamp = new Date()
+            if (message.type === 'connect') {
+              console.log('connected to room', message)
+              set({ client: message.payload, roomID: message.roomID })
+            }
             if (message && message.type) {
-              emit(message)
+              emit(message.type, message)
             }
           } catch (e) {
             console.error('Failed to parse WebSocket message:', e)
@@ -102,12 +115,18 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
           }
         }
       },
+      send: (message) => {
+        const { conn } = get()
+        if (conn) {
+          conn.send(JSON.stringify(message))
+        }
+      },
     }
   },
 )
 
-export function useRoomConnection(
-  selector: (state: RoomConnectionStore) => unknown,
+export function useRoomConnection<T = unknown>(
+  selector: (state: RoomConnectionStore) => T,
 ) {
   return useStore(roomConnectionStore, selector)
 }
@@ -116,13 +135,15 @@ export const roomConnectionActions: RoomConnectionActions =
   roomConnectionStore.getState()
 
 export function useRoomEvent(
-  eventType: Message['type'] | '*',
+  messageTypes: MessageType[],
   callback: EventCallback,
 ) {
   useEffect(() => {
-    const unsubscribe = roomConnectionActions.on(eventType, callback)
+    const unsubscribe = messageTypes.map((messageType) =>
+      roomConnectionActions.on(messageType, callback),
+    )
     return () => {
-      unsubscribe()
+      unsubscribe.forEach((fn) => fn())
     }
-  }, [eventType, callback])
+  }, [messageTypes.join(','), callback])
 }

@@ -1,4 +1,6 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
+import { RoomsSidebar } from '~/domain/rooms/rooms-sidebar'
 
 export const Route = createFileRoute('/rooms')({
   component: AppLayoutComponent,
@@ -6,9 +8,11 @@ export const Route = createFileRoute('/rooms')({
 
 function AppLayoutComponent() {
   return (
-    <div>
-      <h1>/rooms</h1>
-      <Outlet />
-    </div>
+    <SidebarProvider>
+      <RoomsSidebar />
+      <SidebarInset>
+        <Outlet />
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

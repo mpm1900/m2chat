@@ -1,70 +1,21 @@
 package chat
 
-import (
-	"encoding/json"
-	"errors"
-)
-
+type MessageType string
 type Message struct {
 	ID       ID          `json:"id"`
+	RoomID   ID          `json:"roomID"`
+	ClientID ID          `json:"clientID,omitempty"`
 	Type     MessageType `json:"type"`
-	ClientID ID          `json:"clientId,omitempty"`
-	RoomID   ID          `json:"roomId"`
-	To       ID          `json:"to,omitempty"`
+	To       []ID        `json:"to,omitempty"`
+	Omit     []ID        `json:"omit,omitempty"`
+	Refetch  []string    `json:"refetch,omitempty"`
+	Text     string      `json:"text,omitempty"`
+	Payload  any         `json:"payload,omitempty"`
 }
-
-type MessageType uint8
 
 const (
-	System MessageType = iota
-	Refetch
-	Chat
-	DirectMessage
+	System        MessageType = "system"
+	Connect       MessageType = "connect"
+	Chat          MessageType = "chat"
+	DirectMessage MessageType = "direct_message"
 )
-
-func (mt MessageType) String() string {
-	switch mt {
-	case System:
-		return "system"
-	case Refetch:
-		return "refetch"
-	case Chat:
-		return "chat"
-	case DirectMessage:
-		return "direct_message"
-	default:
-		return ""
-	}
-}
-
-func ParseMessageType(s string) (MessageType, error) {
-	switch s {
-	case "system":
-		return System, nil
-	case "refetch":
-		return Refetch, nil
-	case "chat":
-		return Chat, nil
-	case "direct_message":
-		return DirectMessage, nil
-	default:
-		return 0, errors.New("undefined MessageType")
-	}
-}
-
-func (mt MessageType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(mt.String())
-}
-
-func (mt *MessageType) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	t, err := ParseMessageType(s)
-	if err != nil {
-		return err
-	}
-	*mt = t
-	return nil
-}

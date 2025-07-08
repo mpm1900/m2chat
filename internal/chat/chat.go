@@ -24,6 +24,8 @@ func NewChatHandler() *ChatHandler {
 	handler.mux.HandleFunc("GET /chat/rooms/{roomID}", handler.handleGetRoom)
 	handler.mux.HandleFunc("GET /chat/rooms", handler.handleGetAllRooms)
 
+	handler.getOrCreateRoom(NewID())
+
 	return handler
 }
 
@@ -104,6 +106,7 @@ func (ch *ChatHandler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ch *ChatHandler) handleGetAllRooms(w http.ResponseWriter, r *http.Request) {
+	log.Println("GET /chat/rooms")
 	ch.roomsMu.RLock()
 	defer ch.roomsMu.RUnlock()
 
