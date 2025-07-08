@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"errors"
+	"log"
 	"slices"
 )
 
@@ -40,8 +42,13 @@ func (r *Room) Get(req RoomRequest) {
 	r.request <- req
 }
 
-func (r *Room) addClient(client *Client) {
+func (r *Room) addClient(client *Client) error {
+	_, ok := r.clients[client.ID]
+	if ok {
+		return errors.New("client already exists in this room")
+	}
 	r.clients[client.ID] = client
+	return nil
 }
 
 func (r *Room) removeClient(client *Client) {
@@ -100,13 +107,18 @@ func (r *Room) Run() {
 	for {
 		select {
 		case client := <-r.register:
-			r.addClient(client)
+			err := r.addClient(client)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 			r.refetch([]string{"room"}, client.ID)
 			r.sendMessage(Message{
 				ID:      NewID(),
 				Type:    Connect,
 				RoomID:  r.ID,
 				To:      []ID{client.ID},
+				Refetch: []string{"room"},
 				Payload: client,
 			})
 		case client := <-r.unregister:

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { v4 } from 'uuid'
 import { createStore, useStore } from 'zustand'
 import type { ClientMessage, Message } from '~/types/message'
 import type { RoomClient } from '~/types/room'
@@ -25,6 +26,7 @@ type RoomConnectionStore = RoomConnectionActions & RoomConnectionState
 
 export const roomConnectionStore = createStore<RoomConnectionStore>(
   (set, get) => {
+    const CLIENT_ID = v4()
     function reset() {
       set({
         conn: null,
@@ -57,7 +59,9 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
           currentConn.close(1000, 'New connection initiated')
         }
 
-        const conn = new WebSocket(`/chat/rooms/${roomID}/ws`)
+        const conn = new WebSocket(
+          `/chat/rooms/${roomID}/ws?clientID=${CLIENT_ID}`,
+        )
         set({ conn, roomID })
 
         conn.onopen = () => {

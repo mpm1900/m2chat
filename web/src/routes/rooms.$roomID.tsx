@@ -58,7 +58,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-svh">
       <div className="border-b px-6 py-2 flex flex-row items-center justify-between gap-2">
         <div className="flex flex-row items-center gap-2">
           <div className="font-semibold whitespace-nowrap">
@@ -82,7 +82,7 @@ function RouteComponent() {
       <SidebarProvider className="flex flex-row flex-1 justify-between relative min-h-0">
         <SidebarInset className="p-4 flex-1 flex">
           <Card className="h-full justify-between">
-            <CardContent className="flex flex-col gap-2">
+            <CardContent className="flex flex-col gap-2 max-h-full overflow-y-auto">
               {log
                 .filter((m) => m.type === 'chat')
                 .map((m) => (
@@ -107,7 +107,7 @@ function RouteComponent() {
                   </div>
                 ))}
             </CardContent>
-            <CardFooter className="sticky bottom-0">
+            <CardFooter>
               <form
                 className="relative w-full"
                 onSubmit={(e: any) => {
