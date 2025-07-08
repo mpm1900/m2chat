@@ -117,6 +117,7 @@ func (c *Client) write() {
 	for {
 		select {
 		case message := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			if err := c.writeMessage(message); err != nil {
 				log.Printf("[client=%s] ERROR writing message: %v", c.ID, err)
 				return
