@@ -75,6 +75,7 @@ func (r *Room) sendMessage(message Message) {
 		select {
 		case client.send <- message:
 		default:
+			log.Println("failed to send message to client, REMOVE", client.ID)
 			r.removeClient(client)
 		}
 	}
@@ -88,6 +89,7 @@ func (r *Room) broadcastMessage(message Message) {
 		select {
 		case client.send <- message:
 		default:
+			log.Println("failed to send message to client, REMOVE", client.ID)
 			r.removeClient(client)
 		}
 	}

@@ -80,7 +80,7 @@ function RouteComponent() {
         </div>
       </div>
       <SidebarProvider className="flex flex-row flex-1 justify-between relative min-h-0">
-        <SidebarInset className="p-4 flex-1 flex">
+        <SidebarInset className="p-2 flex-1 flex">
           <Card className="h-full justify-between">
             <CardContent className="flex flex-col gap-2 max-h-full overflow-y-auto">
               {log

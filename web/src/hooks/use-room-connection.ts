@@ -65,9 +65,8 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
         set({ conn, roomID })
 
         conn.onopen = () => {
-          console.log('connected to room')
+          console.log('WebSocket OPEN')
         }
-
         conn.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data)
@@ -85,8 +84,13 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
         }
 
         conn.onclose = () => {
-          if (get().conn === conn) {
+          const { conn: _conn, roomID } = get()
+          console.log('WebSocket CLOSED')
+          if (_conn === conn) {
             set({ conn: null })
+            if (_conn && roomID) {
+              get().connect(roomID)
+            }
           }
         }
 
