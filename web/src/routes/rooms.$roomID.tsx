@@ -4,7 +4,6 @@ import { format } from 'date-fns'
 import { EditIcon, SendIcon } from 'lucide-react'
 import { v4 } from 'uuid'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardFooter } from '~/components/ui/card'
 import {
   Sidebar,
   SidebarContent,
@@ -83,12 +82,12 @@ function RouteComponent() {
       </div>
       <SidebarProvider className="flex flex-row flex-1 justify-between relative min-h-0">
         <SidebarInset className="p-2 flex-1 flex">
-          <Card className="h-full justify-between">
-            <CardContent className="flex flex-col gap-2 max-h-full overflow-y-auto">
+          <div className="h-full flex flex-col gap-6 justify-between">
+            <div className="flex flex-col gap-2 overflow-y-auto p-4">
               {log
                 .filter((m) => m.type === 'chat')
                 .map((m) => (
-                  <div key={m.id}>
+                  <div key={m.id} className="flex flex-col">
                     <div
                       className={cn('flex flex-col', {
                         'items-end': client?.id === m.clientID,
@@ -113,8 +112,8 @@ function RouteComponent() {
                     </div>
                   </div>
                 ))}
-            </CardContent>
-            <CardFooter>
+            </div>
+            <div className="px-4 pb-2">
               <form
                 className="relative w-full"
                 onSubmit={(e: any) => {
@@ -153,8 +152,8 @@ function RouteComponent() {
                   <SendIcon />
                 </Button>
               </form>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
         </SidebarInset>
         <Sidebar side="right" className="border-l absolute h-full">
           <SidebarContent>
