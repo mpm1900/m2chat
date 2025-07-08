@@ -118,6 +118,7 @@ func (c *Client) write() {
 		select {
 		case message := <-c.send:
 			if err := c.writeMessage(message); err != nil {
+				log.Printf("[client=%s] ERROR writing message: %v", c.ID, err)
 				return
 			}
 		// this block ensures that the client doesnt' get disconnected

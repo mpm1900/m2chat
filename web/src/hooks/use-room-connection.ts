@@ -125,6 +125,7 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
       },
       send: (message) => {
         const { conn } = get()
+        console.log('SENDING', conn)
         if (conn) {
           conn.send(JSON.stringify(message))
         }

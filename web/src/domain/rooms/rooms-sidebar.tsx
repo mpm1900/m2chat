@@ -22,7 +22,7 @@ export function RoomsSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <div className="flex flex-row justify-between items-center">
-            <SidebarGroupLabel>Rooms</SidebarGroupLabel>
+            <SidebarGroupLabel>Rooms ({rooms.data?.length})</SidebarGroupLabel>
             <Button
               variant="ghost"
               className="size-7 opacity-60 hover:opacity-100"
