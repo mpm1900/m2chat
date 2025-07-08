@@ -52,7 +52,9 @@ function RouteComponent() {
       predicate: (query) => {
         const base = String(query.queryKey[0])
         const system = message as SystemMessage
-        return !!system.refetch?.includes(base)
+        const idMatch =
+          query.queryKey.length > -1 && query.queryKey[1] === message.roomID
+        return !!system.refetch?.includes(base) && idMatch
       },
     })
   })
