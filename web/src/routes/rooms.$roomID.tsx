@@ -151,12 +151,13 @@ function RouteComponent() {
                 onSubmit={(e: any) => {
                   e.preventDefault()
                   const text = e.currentTarget.text.value
+                  if (!text.trim()) return
                   e.currentTarget.reset()
                   send({
                     id: v4(),
                     type: 'chat',
                     roomID,
-                    text,
+                    text: text.trim(),
                     userID: user.id,
                     userName: user.name,
                   })
