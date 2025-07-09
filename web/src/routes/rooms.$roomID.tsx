@@ -63,7 +63,7 @@ function RouteComponent() {
         const system = message as SystemMessage
         const idMatch =
           query.queryKey.length > -1 && query.queryKey[1] === message.roomID
-        return !!system.refetch?.includes(base) && idMatch
+        return !!system.refetch?.includes(base) && (idMatch || base !== 'room')
       },
     })
   })

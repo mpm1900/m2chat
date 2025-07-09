@@ -9,5 +9,6 @@ export function useRooms() {
       const response = await fetch('/chat/rooms', { signal })
       return (await response.json()) ?? []
     },
+    gcTime: 0,
   })
 }
