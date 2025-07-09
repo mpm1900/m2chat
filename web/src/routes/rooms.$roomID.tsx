@@ -54,10 +54,9 @@ function RouteComponent() {
   const room = useRoom(roomID)
   const queryClient = useQueryClient()
   const mutation = useUpdateRoom(roomID)
-  console.log(mutation)
 
   useRoomEvent(['*'], (message) => {
-    console.log('received message', message)
+    console.log('received message', message.type)
     queryClient.removeQueries({
       predicate: (query) => {
         const base = String(query.queryKey[0])
@@ -98,10 +97,12 @@ function RouteComponent() {
                   className="flex flex-row gap-2"
                   onSubmit={(e: any) => {
                     e.preventDefault()
+                    const name = e.currentTarget.name.value.trim()
+                    if (!name) return
                     mutation.mutate({
                       room: {
                         ...room.data,
-                        name: e.currentTarget.name.value,
+                        name,
                       },
                     })
                   }}
