@@ -48,7 +48,7 @@ function RouteComponent() {
   const { roomID } = Route.useParams()
   const user = useUser()
   const log = useRoomConnection((state) => state.messageLog)
-  const conn = useRoomConnection((state) => state.conn)
+  const connected = useRoomConnection((state) => state.connected)
   const send = useRoomConnection((state) => state.send)
   const client = useRoomConnection((state) => state.client)
   const room = useRoom(roomID)
@@ -77,7 +77,7 @@ function RouteComponent() {
           </div>
           <div
             className={cn('bg-muted rounded-full size-2', {
-              'bg-green-700': conn,
+              'bg-green-500': connected,
             })}
           />
           <div className="italic text-sm text-muted-foreground truncate">

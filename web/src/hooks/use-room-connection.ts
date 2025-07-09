@@ -10,6 +10,7 @@ type EventMap = Map<MessageType, Set<EventCallback>>
 
 type RoomConnectionState = {
   conn: WebSocket | null
+  connected: boolean
   eventEmitter: EventMap
   messageLog: Message[]
   roomID: string | null
@@ -47,6 +48,7 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
 
     return {
       conn: null,
+      connected: false,
       eventEmitter: new Map(),
       messageLog: [],
       roomID: null,
@@ -59,13 +61,14 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
           currentConn.close(1000, 'New connection initiated')
         }
 
-        const conn = new WebSocket(
+        let conn: WebSocket | null = new WebSocket(
           `/chat/rooms/${roomID}/ws?userID=${user.id}&userName=${user.name}`,
         )
         set({ conn, roomID })
 
         conn.onopen = () => {
           console.log('WebSocket OPEN')
+          set({ connected: true })
         }
         conn.onmessage = (event) => {
           try {
@@ -84,10 +87,10 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
         }
 
         conn.onclose = () => {
-          const { conn: _conn, roomID } = get()
-          console.log('WebSocket CLOSED')
+          const { conn: _conn } = get()
+          console.log('WebSocket CLOSED', conn)
           if (_conn === conn) {
-            set({ conn: null })
+            set({ conn: null, connected: false })
             if (_conn && roomID) {
               get().connect(roomID)
             }
