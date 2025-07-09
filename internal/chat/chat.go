@@ -24,40 +24,9 @@ func NewChatHandler() *ChatHandler {
 	handler.mux.HandleFunc("GET /chat/rooms/{roomID}", handler.handleGetRoom)
 	handler.mux.HandleFunc("GET /chat/rooms", handler.handleGetAllRooms)
 
-	handler.mux.HandleFunc("POST /chat/rooms/{roomID}", func(w http.ResponseWriter, r *http.Request) {
-		var dto RoomDTO
-		json.NewDecoder(r.Body).Decode(&dto)
-		log.Println("POST /chat/rooms/{roomID}", dto.Name)
-		room, ok := handler.getRoom(ID(dto.ID))
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("room not found"))
-			return
-		}
-		var response = make(chan RoomDTO, 1)
-		req := RoomMutation{
-			Name:     dto.Name,
-			Response: response,
-		}
-		select {
-		case room.mutate <- req:
-			select {
-			case data := <-response:
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(data)
-			case <-time.After(time.Second):
-				timeout(w)
-				return
-			}
-		case <-time.After(time.Second):
-			timeout(w)
-			return
-		}
-	})
+	handler.mux.HandleFunc("POST /chat/rooms/{roomID}", handler.handleUpdateRoom)
 
 	handler.getOrCreateRoom(NewID())
-
 	return handler
 }
 
@@ -173,4 +142,36 @@ func (ch *ChatHandler) handleGetAllRooms(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(roomDTOs)
+}
+
+func (ch *ChatHandler) handleUpdateRoom(w http.ResponseWriter, r *http.Request) {
+	var dto RoomDTO
+	json.NewDecoder(r.Body).Decode(&dto)
+	log.Println("POST /chat/rooms/{roomID}", dto.Name)
+	room, ok := ch.getRoom(ID(dto.ID))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("room not found"))
+		return
+	}
+	var response = make(chan RoomDTO, 1)
+	req := RoomMutation{
+		DTO:      dto,
+		Response: response,
+	}
+	select {
+	case room.mutate <- req:
+		select {
+		case data := <-response:
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+		case <-time.After(time.Second):
+			timeout(w)
+			return
+		}
+	case <-time.After(time.Second):
+		timeout(w)
+		return
+	}
 }

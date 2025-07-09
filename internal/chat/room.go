@@ -28,7 +28,7 @@ type RoomRequest struct {
 }
 
 type RoomMutation struct {
-	Name     string
+	DTO      RoomDTO
 	Response chan<- RoomDTO
 }
 
@@ -147,14 +147,14 @@ func (r *Room) Run() {
 			}
 			req.Response <- dto
 		case req := <-r.mutate:
-			r.name = req.Name
+			r.name = req.DTO.Name
 			dto := RoomDTO{
 				ID:      r.ID,
 				Name:    r.name,
 				Clients: r.getClients(),
 			}
 			req.Response <- dto
-			r.refetch([]string{"room"})
+			r.refetch([]string{"room", "rooms"})
 		}
 	}
 }
