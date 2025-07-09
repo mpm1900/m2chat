@@ -4,6 +4,12 @@ import { format } from 'date-fns'
 import { EditIcon, SendIcon } from 'lucide-react'
 import { v4 } from 'uuid'
 import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +29,7 @@ import {
   useRoomConnection,
   useRoomEvent,
 } from '~/hooks/use-room-connection'
+import { useUpdateRoom } from '~/hooks/use-update-room'
 import { useUser } from '~/hooks/use-user'
 import { cn } from '~/lib/utils'
 import type { SystemMessage } from '~/types/message'
@@ -46,6 +53,8 @@ function RouteComponent() {
   const client = useRoomConnection((state) => state.client)
   const room = useRoom(roomID)
   const queryClient = useQueryClient()
+  const mutation = useUpdateRoom(roomID)
+  console.log(mutation)
 
   useRoomEvent(['*'], (message) => {
     console.log('received message', message)
@@ -77,9 +86,31 @@ function RouteComponent() {
           </div>
         </div>
         <div className="flex flex-row items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <EditIcon />
-          </Button>
+          {room.data && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <EditIcon />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end">
+                <form
+                  className="flex flex-row gap-2"
+                  onSubmit={(e: any) => {
+                    e.preventDefault()
+                    mutation.mutate({
+                      room: {
+                        ...room.data,
+                        name: e.currentTarget.name.value,
+                      },
+                    })
+                  }}
+                >
+                  <Input name="name" placeholder={room.data.name} />
+                </form>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
       <SidebarProvider className="flex flex-row flex-1 justify-between relative min-h-0">

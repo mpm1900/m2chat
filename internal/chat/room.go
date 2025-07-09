@@ -14,6 +14,7 @@ type Room struct {
 	unregister chan *Client
 	incoming   chan Message
 	request    chan RoomRequest
+	mutate     chan RoomMutation
 }
 
 type RoomDTO struct {
@@ -26,6 +27,11 @@ type RoomRequest struct {
 	Response chan<- RoomDTO
 }
 
+type RoomMutation struct {
+	Name     string
+	Response chan<- RoomDTO
+}
+
 func NewRoom() *Room {
 	return &Room{
 		ID:         NewID(),
@@ -35,6 +41,7 @@ func NewRoom() *Room {
 		unregister: make(chan *Client),
 		incoming:   make(chan Message, 256),
 		request:    make(chan RoomRequest),
+		mutate:     make(chan RoomMutation),
 	}
 }
 
@@ -139,6 +146,15 @@ func (r *Room) Run() {
 				Clients: r.getClients(),
 			}
 			req.Response <- dto
+		case req := <-r.mutate:
+			r.name = req.Name
+			dto := RoomDTO{
+				ID:      r.ID,
+				Name:    r.name,
+				Clients: r.getClients(),
+			}
+			req.Response <- dto
+			r.refetch([]string{"room"})
 		}
 	}
 }
