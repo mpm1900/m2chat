@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"errors"
 	"log"
 	"slices"
 )
@@ -49,13 +48,13 @@ func (r *Room) Get(req RoomRequest) {
 	r.request <- req
 }
 
-func (r *Room) addClient(client *Client) error {
+func (r *Room) addClient(client *Client) {
 	_, ok := r.clients[client.ID]
 	if ok {
-		return errors.New("client already exists in this room")
+		log.Println("client already exists in this room")
+		return
 	}
 	r.clients[client.ID] = client
-	return nil
 }
 
 func (r *Room) removeClient(client *Client) {
@@ -112,7 +111,7 @@ func (r *Room) refetch(keys []string, omit ...ID) {
 	})
 }
 
-func (r *Room) joinMessage(client Client, refetch []string) {
+func (r *Room) broadcastJoinMessage(client Client, refetch []string) {
 	r.broadcastMessage(Message{
 		ID:      NewID(),
 		Type:    SystemChat,
@@ -123,7 +122,7 @@ func (r *Room) joinMessage(client Client, refetch []string) {
 	})
 }
 
-func (r *Room) leaveMessage(client Client, refetch []string) {
+func (r *Room) broadcastLeaveMessage(client Client, refetch []string) {
 	r.broadcastMessage(Message{
 		ID:      NewID(),
 		Type:    SystemChat,
@@ -134,27 +133,35 @@ func (r *Room) leaveMessage(client Client, refetch []string) {
 	})
 }
 
+func (r *Room) sendConnectMessage(client Client) {
+	r.broadcastMessage(Message{
+		ID:      NewID(),
+		Type:    Connect,
+		RoomID:  r.ID,
+		To:      []ID{client.ID},
+		Refetch: []string{"room"},
+		Payload: client,
+	})
+}
+
+func (r *Room) Dto() RoomDTO {
+	return RoomDTO{
+		ID:      r.ID,
+		Name:    r.name,
+		Clients: r.getClients(),
+	}
+}
+
 func (r *Room) Run() {
 	for {
 		select {
 		case client := <-r.register:
-			err := r.addClient(client)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			r.joinMessage(*client, []string{"room"})
-			r.sendMessage(Message{
-				ID:      NewID(),
-				Type:    Connect,
-				RoomID:  r.ID,
-				To:      []ID{client.ID},
-				Refetch: []string{"room"},
-				Payload: client,
-			})
+			r.addClient(client)
+			r.sendConnectMessage(*client)
+			r.broadcastJoinMessage(*client, []string{"room"})
 		case client := <-r.unregister:
 			r.removeClient(client)
-			r.leaveMessage(*client, []string{"room"})
+			r.broadcastLeaveMessage(*client, []string{"room"})
 		case message := <-r.incoming:
 			if message.To != nil {
 				r.sendMessage(message)
@@ -162,20 +169,10 @@ func (r *Room) Run() {
 				r.broadcastMessage(message)
 			}
 		case req := <-r.request:
-			dto := RoomDTO{
-				ID:      r.ID,
-				Name:    r.name,
-				Clients: r.getClients(),
-			}
-			req.Response <- dto
+			req.Response <- r.Dto()
 		case req := <-r.mutate:
 			r.name = req.DTO.Name
-			dto := RoomDTO{
-				ID:      r.ID,
-				Name:    r.name,
-				Clients: r.getClients(),
-			}
-			req.Response <- dto
+			req.Response <- r.Dto()
 			r.refetch([]string{"room", "rooms"})
 		}
 	}
