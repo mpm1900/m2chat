@@ -17,6 +17,7 @@ type Message struct {
 
 const (
 	System        MessageType = "system"
+	SystemChat    MessageType = "system:chat"
 	Connect       MessageType = "connect"
 	Chat          MessageType = "chat"
 	DirectMessage MessageType = "direct_message"

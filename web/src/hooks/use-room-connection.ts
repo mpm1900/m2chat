@@ -29,7 +29,6 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
   (set, get) => {
     function reset() {
       set({
-        conn: null,
         eventEmitter: new Map(),
         messageLog: [],
       })
@@ -90,8 +89,8 @@ export const roomConnectionStore = createStore<RoomConnectionStore>(
           const { conn: _conn } = get()
           console.log('WebSocket CLOSED', conn)
           if (_conn === conn) {
-            set({ conn: null, connected: false })
-            if (_conn && roomID) {
+            set({ connected: false })
+            if (conn && roomID) {
               get().connect(roomID)
             }
           }

@@ -112,6 +112,28 @@ func (r *Room) refetch(keys []string, omit ...ID) {
 	})
 }
 
+func (r *Room) joinMessage(client Client, refetch []string) {
+	r.broadcastMessage(Message{
+		ID:      NewID(),
+		Type:    SystemChat,
+		RoomID:  r.ID,
+		Omit:    []ID{client.ID},
+		Refetch: refetch,
+		Text:    client.UserName + " joined the room.",
+	})
+}
+
+func (r *Room) leaveMessage(client Client, refetch []string) {
+	r.broadcastMessage(Message{
+		ID:      NewID(),
+		Type:    SystemChat,
+		RoomID:  r.ID,
+		Omit:    []ID{client.ID},
+		Refetch: refetch,
+		Text:    client.UserName + " left the room.",
+	})
+}
+
 func (r *Room) Run() {
 	for {
 		select {
@@ -121,7 +143,7 @@ func (r *Room) Run() {
 				log.Println(err)
 				continue
 			}
-			r.refetch([]string{"room"}, client.ID)
+			r.joinMessage(*client, []string{"room"})
 			r.sendMessage(Message{
 				ID:      NewID(),
 				Type:    Connect,
@@ -132,7 +154,7 @@ func (r *Room) Run() {
 			})
 		case client := <-r.unregister:
 			r.removeClient(client)
-			r.refetch([]string{"room"}, client.ID)
+			r.leaveMessage(*client, []string{"room"})
 		case message := <-r.incoming:
 			if message.To != nil {
 				r.sendMessage(message)

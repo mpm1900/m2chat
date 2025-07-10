@@ -35,5 +35,18 @@ export type ChatMessage = {
   timestamp?: Date
 }
 
-export type Message = ConnectMessage | SystemMessage | ChatMessage
+export type SystemChatMessage = {
+  id: string
+  type: 'system:chat'
+  roomID: string
+  clientID?: string
+  refetch?: string[]
+  text: string
+}
+
+export type Message =
+  | ConnectMessage
+  | SystemMessage
+  | ChatMessage
+  | SystemChatMessage
 export type ClientMessage = ChatMessage

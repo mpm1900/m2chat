@@ -85,33 +85,31 @@ function RouteComponent() {
           </div>
         </div>
         <div className="flex flex-row items-center gap-2">
-          {room.data && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <EditIcon />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end">
-                <form
-                  className="flex flex-row gap-2"
-                  onSubmit={(e: any) => {
-                    e.preventDefault()
-                    const name = e.currentTarget.name.value.trim()
-                    if (!name) return
-                    mutation.mutate({
-                      room: {
-                        ...room.data,
-                        name,
-                      },
-                    })
-                  }}
-                >
-                  <Input name="name" placeholder={room.data.name} />
-                </form>
-              </PopoverContent>
-            </Popover>
-          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" disabled={!room.data}>
+                <EditIcon />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end">
+              <form
+                className="flex flex-row gap-2"
+                onSubmit={(e: any) => {
+                  e.preventDefault()
+                  const name = e.currentTarget.name.value.trim()
+                  if (!name || !room.data) return
+                  mutation.mutate({
+                    room: {
+                      ...room.data,
+                      name,
+                    },
+                  })
+                }}
+              >
+                <Input name="name" placeholder={room.data?.name} />
+              </form>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       <SidebarProvider className="flex flex-row flex-1 justify-between relative min-h-0">
@@ -119,30 +117,38 @@ function RouteComponent() {
           <div className="h-full flex flex-col gap-6 justify-between">
             <div className="flex flex-col gap-2 overflow-y-auto p-4">
               {log
-                .filter((m) => m.type === 'chat')
+                .filter((m) => m.type === 'chat' || m.type === 'system:chat')
                 .map((m) => (
-                  <div
-                    key={m.id}
-                    className={cn('flex flex-col pr-8 pl-0', {
-                      'items-end pl-8 pr-0': client?.id === m.clientID,
-                    })}
-                  >
-                    <div
-                      className={cn(
-                        'flex flex-row items-center gap-2 leading-none',
-                        { 'flex-row-reverse': client?.id === m.clientID },
-                      )}
-                    >
-                      <div className="text-muted-foreground text-sm">
-                        {m.userName || m.userID || m.clientID}
+                  <div key={m.id}>
+                    {m.type === 'system:chat' && (
+                      <div className="text-center text-muted-foreground text-sm">
+                        {m.text}
                       </div>
-                      {m.timestamp && (
-                        <div className="text-xs">
-                          ({format(m.timestamp, 'h:mm a')})
+                    )}
+                    {m.type === 'chat' && (
+                      <div
+                        className={cn('flex flex-col pr-8 pl-0', {
+                          'items-end pl-8 pr-0': client?.id === m.clientID,
+                        })}
+                      >
+                        <div
+                          className={cn(
+                            'flex flex-row items-center gap-2 leading-none',
+                            { 'flex-row-reverse': client?.id === m.clientID },
+                          )}
+                        >
+                          <div className="text-muted-foreground text-sm">
+                            {m.userName || m.userID || m.clientID}
+                          </div>
+                          {m.timestamp && (
+                            <div className="text-xs">
+                              ({format(m.timestamp, 'h:mm a')})
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="text-lg">{m.text}</div>
+                        <div className="text-lg">{m.text}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
             </div>
