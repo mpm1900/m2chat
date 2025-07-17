@@ -5,3 +5,4 @@ export const Route = createFileRoute('/')({
     return redirect({ to: '/rooms' })
   },
 })
+  

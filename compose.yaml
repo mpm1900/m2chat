@@ -1,0 +1,12 @@
+services:
+  server:
+    build: .
+    container_name: "server"
+    ports:
+      - "3005:3005"
+    networks:
+      - fullstack
+
+networks:
+  fullstack:
+    driver: bridge
